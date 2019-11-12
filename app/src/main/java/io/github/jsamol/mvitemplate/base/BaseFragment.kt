@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import dagger.android.support.DaggerFragment
+import io.github.jsamol.mvitemplate.util.permission.PermissionRequest
 
 abstract class BaseFragment : DaggerFragment() {
 
@@ -27,4 +28,16 @@ abstract class BaseFragment : DaggerFragment() {
 
     protected open fun initView() = Unit
     protected open fun initListeners() = Unit
+
+    protected fun requiresPermissions(
+        vararg permissions: String,
+        block: () -> Unit = {},
+        onDenied: () -> Unit = { activity?.onBackPressed() }
+    ) {
+
+        PermissionRequest.forPermissions(*permissions)
+            .onPermissionsGranted(block)
+            .onPermissionsDenied(onDenied)
+            .observe(this)
+    }
 }
