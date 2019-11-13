@@ -20,17 +20,15 @@ abstract class BaseMviFragment<VM : BaseMviViewModel<VS, *, *>, VS : MviViewStat
 
     protected abstract val viewModelType: Class<VM>
 
-    protected val viewModel: VM by lazy {
-        ViewModelProvider(this, viewModelFactory)[viewModelType].also {
-            if (!it.isInitialized) {
-                initViewModel()
-                it.onInitialized()
-            }
-        }
-    }
+    protected val viewModel: VM by lazy { ViewModelProvider(this, viewModelFactory)[viewModelType] }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        if (!viewModel.isInitialized) {
+            initViewModel()
+            viewModel.onInitialized()
+        }
 
         viewModel.viewStateLiveData.observe(this, Observer(this::render))
     }
