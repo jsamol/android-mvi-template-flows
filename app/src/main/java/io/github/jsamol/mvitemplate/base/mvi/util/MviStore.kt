@@ -10,6 +10,7 @@ import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
+import java.util.*
 import javax.inject.Inject
 
 @FlowPreview
@@ -30,16 +31,19 @@ abstract class MviStore<VS : MviViewState, A : MviAction, AR : MviActionResult,
         get() = _viewState ?: initViewState
         set(value) { _viewState = value }
 
+    private var initActions: MutableList<A>? = LinkedList()
+
     private val actionChannel: BroadcastChannel<A> = BroadcastChannel(Channel.BUFFERED)
 
     val viewStateFlow: Flow<VS> by lazy {
         actionChannel
             .asFlow()
+            .debounce(DEBOUNCE_VIEW_STATE)
+            .onStart { initActions?.forEachSuspend(this::emit).also { initActions = null } }
             .logDebug("Action")
             .flatMapConcat { dispatcher.dispatch(it) }
             .logDebug("ActionResult")
             .scan(viewState) { viewState, actionResult -> reducer.reduce(viewState, actionResult) }
-            .debounce(DEBOUNCE_VIEW_STATE)
             .distinctUntilChanged()
             .logDebug("ViewState")
             .onEach { viewState = it }
@@ -47,7 +51,11 @@ abstract class MviStore<VS : MviViewState, A : MviAction, AR : MviActionResult,
     }
 
     suspend fun intent(action: A) {
-        actionChannel.send(action)
+        initActions?.add(action) ?: actionChannel.send(action)
+    }
+
+    private suspend fun <T> List<T>.forEachSuspend(action: suspend (T) -> Unit) {
+        forEach { action(it) }
     }
 
     private fun <T> Flow<T>.logDebug(tag: String): Flow<T> =
