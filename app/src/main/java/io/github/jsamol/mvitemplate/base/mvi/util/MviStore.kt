@@ -16,7 +16,7 @@ import javax.inject.Inject
 @FlowPreview
 @ExperimentalCoroutinesApi
 abstract class MviStore<VS : MviViewState, A : MviAction, AR : MviActionResult,
-                        D : MviDispatcher<A, AR>, R : MviReducer<VS, AR>> {
+                        D : MviDispatcher<A, AR>, R : MviReducer<VS, AR>>() {
 
     @Inject
     lateinit var dispatcher: D
@@ -31,7 +31,12 @@ abstract class MviStore<VS : MviViewState, A : MviAction, AR : MviActionResult,
         get() = _viewState ?: initViewState
         set(value) { _viewState = value }
 
-    private var initActions: MutableList<A>? = LinkedList()
+    private var initActions: MutableList<A>? = mutableListOf()
+    private var hasStateObservers: Boolean
+        get() = initActions == null
+        set(value) {
+            initActions = if (value) null else mutableListOf()
+        }
 
     private val actionChannel: BroadcastChannel<A> = BroadcastChannel(Channel.BUFFERED)
 
@@ -39,7 +44,7 @@ abstract class MviStore<VS : MviViewState, A : MviAction, AR : MviActionResult,
         actionChannel
             .asFlow()
             .debounce(DEBOUNCE_VIEW_STATE)
-            .onStart { initActions?.forEachSuspend(this::emit).also { initActions = null } }
+            .onStart { emitAll(initActions).also { hasStateObservers = true } }
             .logDebug("Action")
             .flatMapConcat { dispatcher.dispatch(it) }
             .logDebug("ActionResult")
@@ -48,14 +53,19 @@ abstract class MviStore<VS : MviViewState, A : MviAction, AR : MviActionResult,
             .logDebug("ViewState")
             .onEach { viewState = it }
             .flowOn(Dispatchers.Default)
+            .onCompletion { hasStateObservers = false }
     }
 
     suspend fun intent(action: A) {
-        initActions?.add(action) ?: actionChannel.send(action)
+        if (hasStateObservers) {
+            actionChannel.send(action)
+        } else {
+            initActions?.add(action)
+        }
     }
 
-    private suspend fun <T> List<T>.forEachSuspend(action: suspend (T) -> Unit) {
-        forEach { action(it) }
+    private suspend fun <T> FlowCollector<T>.emitAll(list: List<T>?) {
+        list?.let { emitAll(it.asFlow()) }
     }
 
     private fun <T> Flow<T>.logDebug(tag: String): Flow<T> =
