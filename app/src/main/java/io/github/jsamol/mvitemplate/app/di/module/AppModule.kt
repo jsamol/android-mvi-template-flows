@@ -13,14 +13,12 @@ import io.github.jsamol.mvitemplate.app.di.scope.ApplicationScope
 object AppModule {
 
     @ApplicationScope
-    @JvmStatic
     @Provides
     @ApplicationContext
     fun provideApplicationContext(application: MviApp): Context =
         application.applicationContext
 
     @ApplicationScope
-    @JvmStatic
     @Provides
     fun provideSharedPreferences(application: MviApp): SharedPreferences =
         PreferenceManager.getDefaultSharedPreferences(application)

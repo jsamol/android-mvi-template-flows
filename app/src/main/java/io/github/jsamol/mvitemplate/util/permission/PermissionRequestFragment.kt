@@ -11,7 +11,7 @@ import javax.inject.Inject
 class PermissionRequestFragment private constructor() : DaggerFragment() {
 
     @Inject
-    @field:PermissionArray
+    @PermissionArray
     lateinit var permissions: Array<out String>
 
     val grantResultDeferred: CompletableDeferred<Boolean> = CompletableDeferred()
