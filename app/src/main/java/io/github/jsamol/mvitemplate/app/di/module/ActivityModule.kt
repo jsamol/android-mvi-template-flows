@@ -9,10 +9,8 @@ import io.github.jsamol.mvitemplate.app.di.qualifier.ActivityBundle
 @Module
 abstract class ActivityModule {
 
-    @Module
     companion object {
 
-        @JvmStatic
         @Provides
         @ActivityBundle
         fun provideExtras(activity: Activity): Bundle = activity.intent.extras ?: Bundle.EMPTY

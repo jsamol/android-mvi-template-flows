@@ -14,10 +14,8 @@ import io.github.jsamol.mvitemplate.util.permission.PermissionRequestFragment
 @Module
 abstract class FragmentModule {
 
-    @Module
     companion object {
 
-        @JvmStatic
         @Provides
         @FragmentBundle
         fun provideArguments(fragment: Fragment): Bundle = fragment.arguments ?: Bundle.EMPTY
@@ -38,10 +36,8 @@ abstract class PermissionRequestFragmentModule : FragmentModule() {
     @Binds
     abstract fun bindPermissionRequestFragment(permissionRequestFragment: PermissionRequestFragment): Fragment
 
-    @Module
     companion object {
 
-        @JvmStatic
         @Provides
         @PermissionArray
         fun providePermissionArray(@FragmentBundle bundle: Bundle): Array<out String> =
